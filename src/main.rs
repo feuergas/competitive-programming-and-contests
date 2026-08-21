@@ -1,45 +1,45 @@
 struct Solution {}
 
 fn main() {
-    let nums = vec![1, 2];
+    let ranges = vec![vec![3, 4], vec![1, 2], vec![5, 6]];
+    let left = 2;
+    let right = 5;
 
-    let sol = Solution::find_peak_element(nums);
+    let sol = Solution::is_covered(ranges, left, right);
 
-    println!("Soluzione: {}", sol);
-}
-
-enum State {
-    Peak,
-    Left,
+    println!("Solution: {}", sol);
 }
 
 impl Solution {
-    pub fn find_peak_element(nums: Vec<i32>) -> i32 {
-        let mut left: usize = 0;
-        let mut right: usize = nums.len() - 1;
+    pub fn is_covered(ranges: Vec<Vec<i32>>, left: i32, right: i32) -> bool {
+        let mut sorted_ranges = ranges;
+        sorted_ranges.sort();
 
-        while left < right {
-            let mid = left + (right - left) / 2;
+        let mut merged_ranges: Vec<Vec<i32>> = vec![];
 
-            if Self::check_peak(&nums, &mid, State::Peak) {
-                left = mid;
-                right = mid;
-            } else if Self::check_peak(&nums, &mid, State::Left) {
-                left = mid + 1;
+        for current_range in sorted_ranges {
+            if merged_ranges.is_empty() {
+                merged_ranges.push(current_range);
+                continue;
+            }
+
+            let mut last_range = merged_ranges.pop().unwrap();
+
+            if last_range[1] + 1 >= current_range[0] {
+                last_range[1] = std::cmp::max(last_range[1], current_range[1]);
+                merged_ranges.push(last_range);
             } else {
-                right = mid - 1;
+                merged_ranges.push(last_range);
+                merged_ranges.push(current_range);
             }
         }
 
-        left.try_into().unwrap()
-    }
-
-    pub fn check_peak(nums: &[i32], index: &usize, flag: State) -> bool {
-        let left_peak: bool = *index == 0 || nums[*index - 1] < nums[*index];
-        let right_peak: bool = *index == nums.len() - 1 || nums[*index + 1] < nums[*index];
-        match flag {
-            State::Peak => left_peak && right_peak,
-            State::Left => left_peak,
+        for range in merged_ranges {
+            if range[0] <= left && right <= range[1] {
+                return true;
+            }
         }
+
+        false
     }
 }
