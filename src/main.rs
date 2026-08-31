@@ -1,43 +1,65 @@
+use std::io::Read;
+
 struct Solution {}
 
-fn main() {
-    let nums: Vec<i32> = vec![23, 2, 4, 6, 6];
-    let k: i32 = 7;
+fn get_input(it: &mut std::str::SplitWhitespace<'_>) -> (i32, Vec<(i32, i32, i32)>, Vec<i32>) {
+    let n: i32 = it.next().unwrap().parse().unwrap();
+    let u: i32 = it.next().unwrap().parse().unwrap();
 
-    let sol: bool = Solution::check_subarray_sum(nums, k);
+    let updates: Vec<(i32, i32, i32)> = (0..u)
+        .map(|_| {
+            let l: i32 = it.next().unwrap().parse().unwrap();
+            let r: i32 = it.next().unwrap().parse().unwrap();
+            let v: i32 = it.next().unwrap().parse().unwrap();
+            (l, r, v)
+        })
+        .collect();
 
-    println!("Solution: {}", sol);
+    let q: i32 = it.next().unwrap().parse().unwrap();
+
+    let queries: Vec<i32> = (0..q)
+        .map(|_| {
+            let idx: i32 = it.next().unwrap().parse().unwrap();
+            idx
+        })
+        .collect();
+
+    (n, updates, queries)
 }
 
-use std::collections::HashMap;
+fn main() {
+    let mut input = String::new();
+    std::io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-fn has_duplicates(nums: Vec<i32>) -> bool {
-    let mut seen = HashMap::new();
+    let t: i32 = it.next().unwrap().parse().unwrap();
 
-    for (i, &n) in nums.iter().enumerate() {
-        if let Some(&j) = seen.get(&n) {
-            if j + 1 < i {
-                return true;
-            }
-        } else {
-            seen.insert(n, i);
+    for _ in 0..t {
+        let (n, updates, queries) = get_input(&mut it);
+
+        let sol: Vec<i32> = Solution::update_the_array(n, updates, queries);
+
+        for val in sol.iter() {
+            println!("{}", val);
         }
     }
-
-    false
 }
 
 impl Solution {
-    pub fn check_subarray_sum(nums: Vec<i32>, k: i32) -> bool {
-        let mut prefix_sums: Vec<i32> = vec![0];
-        let mut current_sum: i32 = 0;
-        for num in &nums {
-            let n: i32 = num.rem_euclid(k);
+    pub fn update_the_array(n: i32, updates: Vec<(i32, i32, i32)>, queries: Vec<i32>) -> Vec<i32> {
+        let mut arr = vec![0; n as usize];
 
-            current_sum = (current_sum + n).rem_euclid(k);
-            prefix_sums.push(current_sum);
+        for (l, r, v) in updates {
+            arr[l as usize] += v;
+            if r < n - 1 {
+                arr[(r + 1) as usize] -= v;
+            }
         }
 
-        has_duplicates(prefix_sums)
+        for i in 1..n as usize {
+            arr[i] += arr[i - 1];
+        }
+
+        queries.into_iter().map(|idx: i32| arr[idx as usize]).collect()
     }
 }
