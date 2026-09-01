@@ -1,4 +1,4 @@
-use std::{io::Read, collections::HashMap};
+use std::{collections::HashMap, io::Read};
 
 struct Solution {}
 
@@ -135,10 +135,22 @@ impl Solution {
             *r = positions[r] as i32;
         }
 
+        let mut tree: SegmentTree = SegmentTree::with_len(positions.len());
 
-        let answers: Vec<u32> = vec![0; segments.len()];
+        let mut ordered_segments: Vec<(i32, i32, usize)> = segments
+            .iter()
+            .enumerate()
+            .map(|(i, &(l, r))| (l, r, i))
+            .collect();
 
+        ordered_segments.sort_by_key(|&(_, r, _)| r);
 
+        let mut answers: Vec<u32> = vec![0; segments.len()];
+        for &(l, r, index) in &ordered_segments {
+            let count: i32 = tree.query(l as usize, r as usize);
+            answers[index] = count as u32;
+            tree.update(l as usize, 1);
+        }
 
         answers
     }
