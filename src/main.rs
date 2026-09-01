@@ -1,5 +1,3 @@
-use std::cmp::max;
-
 struct Solution {}
 
 fn main() {
@@ -10,6 +8,8 @@ fn main() {
 
     println!("Soluzione: {}", sol);
 }
+
+use std::cmp::max;
 
 impl Solution {
     pub fn longest_common_subsequence(text1: String, text2: String) -> i32 {
