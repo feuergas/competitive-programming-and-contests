@@ -1,4 +1,5 @@
 struct Solution {}
+// REMOVE ME
 
 fn main() {
     let nums = vec![1, 2];
