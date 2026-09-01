@@ -60,6 +60,9 @@ impl Solution {
             arr[i] += arr[i - 1];
         }
 
-        queries.into_iter().map(|idx: i32| arr[idx as usize]).collect()
+        queries
+            .into_iter()
+            .map(|idx: i32| arr[idx as usize])
+            .collect()
     }
 }
