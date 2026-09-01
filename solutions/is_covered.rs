@@ -1,5 +1,4 @@
 struct Solution {}
-// REMOVE ME
 
 fn main() {
     let ranges = vec![vec![3, 4], vec![1, 2], vec![5, 6]];
