@@ -53,7 +53,7 @@ impl Solution {
         let sqrt_n: u64 = (arr.len() as f64).sqrt() as u64 + 1;
         sorted_queries.sort_by_key(|&(l, r, _)| (l / sqrt_n, r));
 
-        let mut answers: Vec<u64> = Vec::with_capacity(queries.len());
+        let mut answers: Vec<u64> = vec![0; queries.len()];
         let mut counters: Vec<u64> = vec![0; RANGE];
 
         let mut cur_l: u64 = 0;
@@ -61,7 +61,7 @@ impl Solution {
         let mut cur_ans: u64 = arr[0];
         counters[arr[0] as usize] = 1;
 
-        for &(l, r, _) in &sorted_queries {
+        for &(l, r, index) in &sorted_queries {
             let mut add = |i: u64| {
                 let x: u64 = arr[i as usize];
                 counters[x as usize] += 1;
@@ -94,14 +94,9 @@ impl Solution {
                 cur_r -= 1;
             }
 
-            answers.push(cur_ans);
+            answers[index] = cur_ans;
         }
 
-        let mut unpermuted_answers: Vec<u64> = vec![0; queries.len()];
-        for (&ans, (_, _, i)) in answers.iter().zip(sorted_queries) {
-            unpermuted_answers[i] = ans;
-        }
-
-        unpermuted_answers
+        answers
     }
 }
