@@ -27,7 +27,7 @@ fn main() {
     for _ in 0..t {
         let segments: Vec<(i32, i32)> = get_input(&mut it);
 
-        let sol: Vec<u32> = Solution::nested_segments(segments);
+        let sol: Vec<u32> = Solution::nested_segments_fenwick(segments);
 
         for ans in sol {
             println!("{}", ans);
@@ -101,7 +101,7 @@ impl FenwickTree {
 }
 
 impl Solution {
-    pub fn nested_segments(mut segments: Vec<(i32, i32)>) -> Vec<u32> {
+    pub fn nested_segments_fenwick(mut segments: Vec<(i32, i32)>) -> Vec<u32> {
         // Compresses the coordinates of the segments to a smaller range, so that we can use a Fenwick tree
         // to count the number of segments that are nested within each other.
         let mut coords: Vec<i32> = segments

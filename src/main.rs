@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io::Read};
+use std::{io::Read, collections::HashMap};
 
 struct Solution {}
 
@@ -27,7 +27,7 @@ fn main() {
     for _ in 0..t {
         let segments: Vec<(i32, i32)> = get_input(&mut it);
 
-        let sol: Vec<u32> = Solution::nested_segments(segments);
+        let sol: Vec<u32> = Solution::nested_segments_segtree(segments);
 
         for ans in sol {
             println!("{}", ans);
@@ -35,73 +35,86 @@ fn main() {
     }
 }
 
-pub struct FenwickTree {
+pub struct SegmentTree {
     tree: Vec<i32>,
 }
 
-impl FenwickTree {
+impl SegmentTree {
+    fn merge(&self, left: i32, right: i32) -> i32 {
+        left + right
+    }
+
     pub fn with_len(n: usize) -> Self {
         Self {
-            tree: vec![0; n + 1],
+            tree: vec![0; 4 * n],
         }
     }
 
+    pub fn from(arr: &Vec<i32>) -> Self {
+        let mut seg_tree: SegmentTree = SegmentTree::with_len(arr.len());
+        seg_tree.build(arr, 0, 0, arr.len() - 1);
+        seg_tree
+    }
+
     pub fn len(&self) -> usize {
-        self.tree.len() - 1
+        self.tree.len() / 4
     }
 
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
-    /// Index is 0-based, but the tree is 1-based.
-    pub fn add(&mut self, index: usize, value: i32) {
-        let mut index: usize = index + 1;
-        assert!(index < self.tree.len());
-
-        while index < self.tree.len() {
-            self.tree[index] += value;
-            index = Self::next_sibling(index);
-        }
-    }
-
-    /// Index is 0-based, but the tree is 1-based.
-    pub fn sum(&self, index: usize) -> i32 {
-        let mut index: usize = index + 1;
-        assert!(index < self.tree.len());
-
-        let mut sum: i32 = 0;
-        while index > 0 {
-            sum += self.tree[index];
-            index = Self::parent(index);
-        }
-
-        sum
-    }
-
-    pub fn range_sum(&self, left: usize, right: usize) -> i32 {
-        self.sum(right) - if left == 0 { 0 } else { self.sum(left - 1) }
-    }
-
-    fn isolate_trailing_one(index: usize) -> usize {
-        if index == 0 {
-            0
+    fn build(&mut self, arr: &Vec<i32>, node: usize, start: usize, end: usize) {
+        if start == end {
+            self.tree[node] = arr[start];
         } else {
-            1 << index.trailing_zeros()
+            let mid: usize = start + (end - start) / 2;
+            self.build(arr, 2 * node + 1, start, mid);
+            self.build(arr, 2 * node + 2, mid + 1, end);
+            self.tree[node] = self.merge(self.tree[2 * node + 1], self.tree[2 * node + 2]);
         }
     }
 
-    fn parent(index: usize) -> usize {
-        index - Self::isolate_trailing_one(index)
+    pub fn query(&self, l: usize, r: usize) -> i32 {
+        self.query_rec(0, 0, self.len() - 1, l, r)
     }
 
-    fn next_sibling(index: usize) -> usize {
-        index + Self::isolate_trailing_one(index)
+    fn query_rec(&self, node: usize, start: usize, end: usize, l: usize, r: usize) -> i32 {
+        if r < start || end < l {
+            return 0;
+        }
+
+        if l <= start && end <= r {
+            return self.tree[node];
+        }
+
+        let mid: usize = start + (end - start) / 2;
+        let left_query: i32 = self.query_rec(2 * node + 1, start, mid, l, r);
+        let right_query: i32 = self.query_rec(2 * node + 2, mid + 1, end, l, r);
+        self.merge(left_query, right_query)
+    }
+
+    pub fn update(&mut self, index: usize, value: i32) {
+        self.update_rec(0, 0, self.len() - 1, index, value);
+    }
+
+    fn update_rec(&mut self, node: usize, start: usize, end: usize, index: usize, value: i32) {
+        if start == end {
+            self.tree[node] = value;
+        } else {
+            let mid: usize = start + (end - start) / 2;
+            if index <= mid {
+                self.update_rec(2 * node + 1, start, mid, index, value);
+            } else {
+                self.update_rec(2 * node + 2, mid + 1, end, index, value);
+            }
+            self.tree[node] = self.merge(self.tree[2 * node + 1], self.tree[2 * node + 2]);
+        }
     }
 }
 
 impl Solution {
-    pub fn nested_segments(mut segments: Vec<(i32, i32)>) -> Vec<u32> {
+    pub fn nested_segments_segtree(mut segments: Vec<(i32, i32)>) -> Vec<u32> {
         // Compresses the coordinates of the segments to a smaller range, so that we can use a Fenwick tree
         // to count the number of segments that are nested within each other.
         let mut coords: Vec<i32> = segments
@@ -122,25 +135,10 @@ impl Solution {
             *r = positions[r] as i32;
         }
 
-        let mut tree: FenwickTree = FenwickTree::with_len(positions.len());
 
-        for &(_, r) in &segments {
-            tree.add(r as usize, 1);
-        }
+        let answers: Vec<u32> = vec![0; segments.len()];
 
-        let mut ordered_segments: Vec<(i32, i32, usize)> = segments
-            .iter()
-            .enumerate()
-            .map(|(i, &(l, r))| (l, r, i))
-            .collect();
 
-        ordered_segments.sort_by_key(|&(l, ..)| l);
-
-        let mut answers: Vec<u32> = vec![0; segments.len()];
-        for &(_, r, index) in &ordered_segments {
-            answers[index] = tree.sum(r as usize - 1) as u32;
-            tree.add(r as usize, -1);
-        }
 
         answers
     }
