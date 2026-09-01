@@ -2,15 +2,18 @@ use std::{collections::HashMap, io::Read};
 
 struct Solution {}
 
-fn get_input(it: &mut std::str::SplitWhitespace<'_>) -> (Vec<u32>, u32) {
-    let n: u32 = it.next().unwrap().parse().unwrap();
-    let k: u32 = it.next().unwrap().parse().unwrap();
+fn get_input(it: &mut std::str::SplitWhitespace<'_>) -> Vec<(i32, i32)> {
+    let n: usize = it.next().unwrap().parse().unwrap();
 
-    let arr: Vec<u32> = (0..n)
-        .map(|_| it.next().unwrap().parse().unwrap())
+    let segments: Vec<(i32, i32)> = (0..n)
+        .map(|_| {
+            let l: i32 = it.next().unwrap().parse().unwrap();
+            let r: i32 = it.next().unwrap().parse().unwrap();
+            (l, r)
+        })
         .collect();
 
-    (arr, k)
+    segments
 }
 
 fn main() {
@@ -18,57 +21,127 @@ fn main() {
     std::io::stdin().read_to_string(&mut input).unwrap();
     let mut it: std::str::SplitWhitespace<'_> = input.split_whitespace();
 
-    // let t: u32 = it.next().unwrap().parse().unwrap();
-    let t: u32 = 1;
+    // let t: i32 = it.next().unwrap().parse().unwrap();
+    let t: i32 = 1;
 
     for _ in 0..t {
-        let (arr, k) = get_input(&mut it);
+        let segments: Vec<(i32, i32)> = get_input(&mut it);
 
-        let sol: (u32, u32) = Solution::longest_k_good_segment(arr, k);
+        let sol: Vec<u32> = Solution::nested_segments(segments);
 
-        println!("{} {}", sol.0, sol.1);
+        for ans in sol {
+            println!("{}", ans);
+        }
+    }
+}
+
+pub struct FenwickTree {
+    tree: Vec<i32>,
+}
+
+impl FenwickTree {
+    pub fn with_len(n: usize) -> Self {
+        Self {
+            tree: vec![0; n + 1],
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        self.tree.len() - 1
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    /// Index is 0-based, but the tree is 1-based.
+    pub fn add(&mut self, index: usize, value: i32) {
+        let mut index: usize = index + 1;
+        assert!(index < self.tree.len());
+
+        while index < self.tree.len() {
+            self.tree[index] += value;
+            index = Self::next_sibling(index);
+        }
+    }
+
+    /// Index is 0-based, but the tree is 1-based.
+    pub fn sum(&self, index: usize) -> i32 {
+        let mut index: usize = index + 1;
+        assert!(index < self.tree.len());
+
+        let mut sum: i32 = 0;
+        while index > 0 {
+            sum += self.tree[index];
+            index = Self::parent(index);
+        }
+
+        sum
+    }
+
+    pub fn range_sum(&self, left: usize, right: usize) -> i32 {
+        self.sum(right) - if left == 0 { 0 } else { self.sum(left - 1) }
+    }
+
+    fn isolate_trailing_one(index: usize) -> usize {
+        if index == 0 {
+            0
+        } else {
+            1 << index.trailing_zeros()
+        }
+    }
+
+    fn parent(index: usize) -> usize {
+        index - Self::isolate_trailing_one(index)
+    }
+
+    fn next_sibling(index: usize) -> usize {
+        index + Self::isolate_trailing_one(index)
     }
 }
 
 impl Solution {
-    pub fn longest_k_good_segment(arr: Vec<u32>, k: u32) -> (u32, u32) {
-        let mut left: usize = 0;
-        let mut right: usize = 0;
-        let mut max_length: usize = 0;
+    pub fn nested_segments(mut segments: Vec<(i32, i32)>) -> Vec<u32> {
+        // Compresses the coordinates of the segments to a smaller range, so that we can use a Fenwick tree
+        // to count the number of segments that are nested within each other.
+        let mut coords: Vec<i32> = segments
+            .iter()
+            .flat_map(|&(l, r)| vec![l, r])
+            .collect::<Vec<i32>>();
 
-        let mut best_left: usize = 0;
-        let mut best_right: usize = 0;
+        coords.sort();
 
-        let mut count_map: HashMap<u32, usize> = HashMap::new();
-        while right < arr.len() {
-            while count_map.len() <= k as usize && right < arr.len() {
-                *count_map.entry(arr[right]).or_insert(0) += 1;
-                right += 1;
-            }
+        let positions: HashMap<i32, usize> = coords
+            .iter()
+            .enumerate()
+            .map(|(i, &coord)| (coord, i))
+            .collect();
 
-            if right == arr.len() && count_map.len() <= k as usize {
-                right += 1; // Move right pointer to the end to check the last segment
-            }
-
-            if right - left > max_length {
-                max_length = right - left;
-                best_left = left;
-                best_right = right - 1;
-            }
-
-            while count_map.len() > k as usize && left < right {
-                if let Some(count) = count_map.get_mut(&arr[left]) {
-                    *count -= 1;
-                    if *count == 0 {
-                        count_map.remove(&arr[left]);
-                    }
-                }
-                left += 1;
-            }
+        for (l, r) in &mut segments {
+            *l = positions[l] as i32;
+            *r = positions[r] as i32;
         }
 
-        best_right -= 1; // Adjust best_right to be inclusive
+        let mut tree: FenwickTree = FenwickTree::with_len(positions.len());
 
-        (best_left as u32 + 1, best_right as u32 + 1) // Convert to 1-based indexing
+        for &(_, r) in &segments {
+            tree.add(r as usize, 1);
+        }
+
+        let mut ordered_segments: Vec<(i32, i32, usize)> = segments
+            .iter()
+            .enumerate()
+            .map(|(i, &(l, r))| (l, r, i))
+            .collect();
+
+        ordered_segments.sort_by_key(|&(l, ..)| l);
+
+        let mut answers: Vec<u32> = vec![0; segments.len()];
+        for &(_, r, index) in &ordered_segments {
+            answers[index] = tree.sum(r as usize - 1) as u32;
+            tree.add(r as usize, -1);
+        }
+
+        answers
     }
 }
