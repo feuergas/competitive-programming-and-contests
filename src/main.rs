@@ -1,44 +1,34 @@
 struct Solution {}
 
 fn main() {
-    let nums: Vec<i32> = vec![2, 3, 1, 1, 4];
+    let nums: Vec<i32> = vec![1, 5, 11, 5];
 
-    let sol: i32 = Solution::jump_game_2(nums);
+    let sol: bool = Solution::can_partition(nums);
 
     println!("Soluzione: {}", sol);
 }
 
 impl Solution {
-    pub fn jump_game_2(nums: Vec<i32>) -> i32 {
-        if nums.len() <= 1 {
-            return 0; // No jumps needed if there's one or no element
+    pub fn can_partition(nums: Vec<i32>) -> bool {
+        let mut target: usize = nums.iter().sum::<i32>() as usize; // Calculate the total sum of the array
+        if !target.is_multiple_of(2) {
+            return false; // If the total sum is odd, we cannot partition it into two equal subsets
         }
-        let mut cur_index: usize = 0;
-        let mut jumps: i32 = 0;
+        target /= 2; // We need to find a subset with this sum
 
-        while cur_index < nums.len() - 1 {
-            let mut max_reach: usize = 0;
-            let mut next_index: usize = cur_index;
-
-            for i in (cur_index + 1)..=cur_index + nums[cur_index] as usize {
-                if i == nums.len() - 1 {
-                    return jumps + 1; // Reached the end
-                }
-
-                if i < nums.len() && i + nums[i] as usize > max_reach {
-                    max_reach = i + nums[i] as usize;
-                    next_index = i;
+        // Create a DP table where dp[i][j] indicates whether a sum of j can be achieved with the first i numbers
+        let mut dp: Vec<Vec<bool>> = vec![vec![false; target + 1]; nums.len() + 1];
+        dp[0][0] = true; // Base case: a sum of 0 is always possible (empty subset)
+        for (i, &num) in (1..=nums.len()).zip(&nums) {
+            dp[i][0] = true; // Base case: a sum of 0 is always possible (empty subset)
+            for j in 1..=target {
+                dp[i][j] = dp[i - 1][j]; // If we don't take the current number
+                if j >= num as usize {
+                    dp[i][j] |= dp[i - 1][j - num as usize]; // If we take the current number
                 }
             }
-
-            if next_index == cur_index {
-                break; // No further progress can be made
-            }
-
-            cur_index = next_index;
-            jumps += 1;
         }
 
-        -1 // If we exit the loop without reaching the end, return -1
+        dp[nums.len()][target]
     }
 }
