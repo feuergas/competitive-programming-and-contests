@@ -1,46 +1,38 @@
+use std::io::Read;
+
 struct Solution {}
 
+fn get_input(it: &mut std::str::SplitWhitespace<'_>) -> Vec<i32> {
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    let arr: Vec<i32> = (0..n)
+        .map(|_| it.next().unwrap().parse().unwrap())
+        .collect();
+
+    arr
+}
+
 fn main() {
-    let nums: Vec<i32> = vec![10, 9, 2, 5, 3, 7, 101, 18];
+    let mut input: String = String::new();
+    std::io::stdin().read_to_string(&mut input).unwrap();
+    let mut it: std::str::SplitWhitespace<'_> = input.split_whitespace();
 
-    let sol: i32 = Solution::length_of_lis(nums);
+    // let t: u64 = it.next().unwrap().parse().unwrap();
+    let t: u64 = 1;
 
-    println!("Soluzione: {}", sol);
+    for _ in 0..t {
+        let arr: Vec<i32> = get_input(&mut it);
+
+        let sol: u64 = Solution::wilbur_and_array(arr);
+
+        println!("{}", sol);
+    }
 }
 
 impl Solution {
-    pub fn length_of_lis(nums: Vec<i32>) -> i32 {
-        let mut smallest_endpoint: Vec<i32> = Vec::new();
-
-        smallest_endpoint.push(nums[0]);
-
-        for num in nums.into_iter().skip(1) {
-            let binary_search = |target: i32| -> usize {
-                let mut left: usize = 0;
-                let mut right: usize = smallest_endpoint.len();
-
-                while left < right {
-                    let mid = left + (right - left) / 2;
-
-                    if smallest_endpoint[mid] < target {
-                        left = mid + 1;
-                    } else {
-                        right = mid;
-                    }
-                }
-
-                left
-            };
-
-            let pos: usize = binary_search(num);
-
-            if pos == smallest_endpoint.len() {
-                smallest_endpoint.push(num);
-            } else {
-                smallest_endpoint[pos] = num;
-            }
-        }
-
-        smallest_endpoint.len() as i32
+    pub fn wilbur_and_array(arr: Vec<i32>) -> u64 {
+        arr.windows(2).fold(0, |acc: u64, w: &[i32]| {
+            acc + (w[1] - w[0]).unsigned_abs() as u64
+        }) + arr[0].unsigned_abs() as u64
     }
 }
