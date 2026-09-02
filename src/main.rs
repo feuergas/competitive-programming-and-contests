@@ -1,34 +1,46 @@
 struct Solution {}
 
 fn main() {
-    let nums: Vec<i32> = vec![1, 5, 11, 5];
+    let nums: Vec<i32> = vec![10, 9, 2, 5, 3, 7, 101, 18];
 
-    let sol: bool = Solution::can_partition(nums);
+    let sol: i32 = Solution::length_of_lis(nums);
 
     println!("Soluzione: {}", sol);
 }
 
 impl Solution {
-    pub fn can_partition(nums: Vec<i32>) -> bool {
-        let mut target: usize = nums.iter().sum::<i32>() as usize; // Calculate the total sum of the array
-        if !target.is_multiple_of(2) {
-            return false; // If the total sum is odd, we cannot partition it into two equal subsets
-        }
-        target /= 2; // We need to find a subset with this sum
+    pub fn length_of_lis(nums: Vec<i32>) -> i32 {
+        let mut smallest_endpoint: Vec<i32> = Vec::new();
 
-        // Create a DP table where dp[i][j] indicates whether a sum of j can be achieved with the first i numbers
-        let mut dp: Vec<Vec<bool>> = vec![vec![false; target + 1]; nums.len() + 1];
-        dp[0][0] = true; // Base case: a sum of 0 is always possible (empty subset)
-        for (i, &num) in (1..=nums.len()).zip(&nums) {
-            dp[i][0] = true; // Base case: a sum of 0 is always possible (empty subset)
-            for j in 1..=target {
-                dp[i][j] = dp[i - 1][j]; // If we don't take the current number
-                if j >= num as usize {
-                    dp[i][j] |= dp[i - 1][j - num as usize]; // If we take the current number
+        smallest_endpoint.push(nums[0]);
+
+        for num in nums.into_iter().skip(1) {
+            let binary_search = |target: i32| -> usize {
+                let mut left: usize = 0;
+                let mut right: usize = smallest_endpoint.len();
+
+                while left < right {
+                    let mid = left + (right - left) / 2;
+
+                    if smallest_endpoint[mid] < target {
+                        left = mid + 1;
+                    } else {
+                        right = mid;
+                    }
                 }
+
+                left
+            };
+
+            let pos: usize = binary_search(num);
+
+            if pos == smallest_endpoint.len() {
+                smallest_endpoint.push(num);
+            } else {
+                smallest_endpoint[pos] = num;
             }
         }
 
-        dp[nums.len()][target]
+        smallest_endpoint.len() as i32
     }
 }
