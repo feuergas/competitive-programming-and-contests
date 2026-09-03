@@ -1,20 +1,16 @@
-use std::{
-    cmp::{max, min},
-};
+use std::cmp::{max, min};
 
 #[derive(Clone, Default)]
 struct SegmentNode {
     value: i32,
     lazy_value: i32,
     needs_propagation: bool,
-    range: (i32, i32),
 }
 
 impl SegmentNode {
     fn new() -> Self {
         SegmentNode {
             lazy_value: i32::MAX,
-            range: (-1, -1),
             ..Default::default()
         }
     }
@@ -56,8 +52,6 @@ impl SegmentTree {
     }
 
     fn build(&mut self, arr: &Vec<i32>, node: usize, start: usize, end: usize) {
-        self.tree[node].range = (start as i32, end as i32);
-
         if start == end {
             self.tree[node].value = arr[start];
             return;
@@ -143,10 +137,11 @@ mod tests {
 
     #[test]
     fn test_p1() {
+        const TEST_PATH_1: &str = "Testset_handson2_p1";
         let t: i32 = 10;
 
         for index in 0..t {
-            let (arr, queries) = read_input(index);
+            let (arr, queries) = read_input1(TEST_PATH_1, index);
 
             let mut tree: SegmentTree = SegmentTree::from(&arr);
 
@@ -162,25 +157,97 @@ mod tests {
                 }
             }
 
-            let correct_answers: Vec<i32> = read_output(index);
+            let correct_answers: Vec<i32> = read_output(TEST_PATH_1, index);
             assert_eq!(answers, correct_answers);
         }
     }
 
-    fn get_input(it: &mut std::str::SplitWhitespace<'_>) -> (Vec<i32>, Query) {
+    #[test]
+    fn test_p2() {
+        const TEST_PATH_2: &str = "Testset_handson2_p2";
+        let t: i32 = 8;
+
+        for index in 0..t {
+            let (n, segments, queries) = read_input2(TEST_PATH_2, index);
+
+            let mut arr: Vec<i32> = vec![0; n + 1];
+            segments.iter().for_each(|&(l, r)| {
+                arr[l] += 1;
+                arr[r + 1] -= 1;
+            });
+
+            let arr: Vec<i32> = arr
+                .iter()
+                .scan(0, |acc, &val| {
+                    *acc += val;
+                    Some(*acc)
+                })
+                .collect();
+
+            let mut positions: Vec<Vec<usize>> = vec![Vec::new(); n + 1];
+            for (idx, &val) in arr.iter().enumerate() {
+                positions[val as usize].push(idx);
+            }
+
+            let mut answers: Vec<i32> = Vec::new();
+            for (i, j, k) in queries {
+                let binary_search = |target: usize| -> usize {
+                    let mut left: usize = 0;
+                    let mut right: usize = positions[k].len();
+
+                    while left < right {
+                        let mid = left + (right - left) / 2;
+
+                        if positions[k][mid] < target {
+                            left = mid + 1;
+                        } else {
+                            right = mid;
+                        }
+                    }
+
+                    left
+                };
+
+                if positions[k].is_empty() {
+                    answers.push(0);
+                    continue;
+                }
+
+                let idx = binary_search(i);
+                if idx == positions[k].len() {
+                    answers.push(0);
+                    continue;
+                }
+
+                let pos = positions[k][idx];
+                answers.push(if pos <= j { 1 } else { 0 });
+            }
+
+            let correct_answers = read_output(TEST_PATH_2, index);
+            assert_eq!(answers, correct_answers);
+        }
+    }
+
+    type Queries1 = Vec<(i8, usize, usize, i32)>;
+
+    fn read_input1(folder_path: &str, index: i32) -> (Vec<i32>, Queries1) {
+        let input_name: String = format!("input{index}.txt");
+        let input: String = fs::read_to_string(format!("{folder_path}/{input_name}")).unwrap();
+        let mut it: std::str::SplitWhitespace<'_> = input.split_whitespace();
+
         let n: usize = it.next().unwrap().parse().unwrap();
         let m: usize = it.next().unwrap().parse().unwrap();
 
-        let arr: Vec<i32> = (0..n)
+        let arr = (0..n)
             .map(|_| it.next().unwrap().parse().unwrap())
             .collect();
 
-        let queries: Query = (0..m)
+        let queries = (0..m)
             .map(|_| {
-                let q_type: i8 = it.next().unwrap().parse().unwrap();
+                let q_type = it.next().unwrap().parse().unwrap();
                 let i: usize = it.next().unwrap().parse().unwrap();
                 let j: usize = it.next().unwrap().parse().unwrap();
-                let mut value: i32 = 0;
+                let mut value = 0;
                 if q_type == 0 {
                     value = it.next().unwrap().parse().unwrap();
                 }
@@ -191,20 +258,39 @@ mod tests {
         (arr, queries)
     }
 
-    type Query = Vec<(i8, usize, usize, i32)>;
-    const FOLDER_PATH: &str = "Testset_handson2_p1"; // Set path to input and output folder location
+    type Queries2 = Vec<(usize, usize, usize)>;
 
-    fn read_input(index: i32) -> (Vec<i32>, Query) {
+    fn read_input2(folder_path: &str, index: i32) -> (usize, Vec<(usize, usize)>, Queries2) {
         let input_name: String = format!("input{index}.txt");
-        let input: String = fs::read_to_string(format!("{FOLDER_PATH}/{input_name}")).unwrap();
+        let input: String = fs::read_to_string(format!("{folder_path}/{input_name}")).unwrap();
         let mut it: std::str::SplitWhitespace<'_> = input.split_whitespace();
 
-        get_input(&mut it)
+        let n: usize = it.next().unwrap().parse().unwrap();
+        let m: usize = it.next().unwrap().parse().unwrap();
+
+        let segments = (0..n)
+            .map(|_| {
+                let left = it.next().unwrap().parse().unwrap();
+                let right = it.next().unwrap().parse().unwrap();
+                (left, right)
+            })
+            .collect();
+
+        let queries = (0..m)
+            .map(|_| {
+                let i = it.next().unwrap().parse().unwrap();
+                let j = it.next().unwrap().parse().unwrap();
+                let k = it.next().unwrap().parse().unwrap();
+                (i, j, k)
+            })
+            .collect();
+
+        (n, segments, queries)
     }
 
-    fn read_output(index: i32) -> Vec<i32> {
+    fn read_output(folder_path: &str, index: i32) -> Vec<i32> {
         let output_name: String = format!("output{index}.txt");
-        let output: String = fs::read_to_string(format!("{FOLDER_PATH}/{output_name}")).unwrap();
+        let output: String = fs::read_to_string(format!("{folder_path}/{output_name}")).unwrap();
 
         output
             .split_whitespace()
