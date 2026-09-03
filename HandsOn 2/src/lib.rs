@@ -3,22 +3,23 @@ use std::cmp::{max, min};
 #[derive(Clone, Default)]
 struct SegmentNode {
     value: i32,
-    lazy_value: i32,
-    needs_propagation: bool,
+    lazy_value: Option<i32>,
 }
 
 impl SegmentNode {
     fn new() -> Self {
         SegmentNode {
-            lazy_value: i32::MAX,
             ..Default::default()
         }
     }
 
     fn update(&mut self, value: i32) {
         self.value = min(self.value, value);
-        self.lazy_value = min(self.lazy_value, value);
-        self.needs_propagation = true;
+
+        self.lazy_value = Some(match self.lazy_value {
+            Some(x) => x.min(value),
+            None => value,
+        });
     }
 }
 
@@ -118,15 +119,12 @@ impl SegmentTree {
     }
 
     fn push_propagation(&mut self, node: usize) {
-        if !self.tree[node].needs_propagation {
-            return;
+        if let Some(lazy_value) = self.tree[node].lazy_value {
+            self.tree[2 * node + 1].update(lazy_value);
+            self.tree[2 * node + 2].update(lazy_value);
+
+            self.tree[node].lazy_value = None;
         }
-        let lazy_value: i32 = self.tree[node].lazy_value;
-
-        self.tree[2 * node + 1].update(lazy_value);
-        self.tree[2 * node + 2].update(lazy_value);
-
-        self.tree[node].needs_propagation = false;
     }
 }
 
