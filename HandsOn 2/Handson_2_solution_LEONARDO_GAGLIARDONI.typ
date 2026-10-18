@@ -1,7 +1,12 @@
 #set text(font: "Noto Sans")
+#show link: body => [
+  #underline(text(olive)[#body])
+]
 
 = Exercise 1
-We use a segment tree with lazy propagation that answers exactly the two types of queries. Building the tree requires $Theta(n log n)$ time and $Theta(n)$ space. Each query takes $Theta(log n)$ time and uses $Theta(log n)$ space which is freed when the query finishes. Since there are $m$ total queries, the overall time complexity is $Theta((n+m) log n)$. The auxiliary space used by the queries does not accumulate, so the overall space complexity is $Theta(n + log n) = Theta(n)$.
+We use a segment tree with lazy propagation#footnote[
+  The implementation of the segment tree was done following the guide at #link("https://cp-algorithms.com/data_structures/segment_tree.html")[Algorithms for Competitive Programming].
+] that answers exactly the two types of queries. Building the tree requires $Theta(n log n)$ time and $Theta(n)$ space. Each query takes $Theta(log n)$ time and uses $Theta(log n)$ space which is freed when the query finishes. Since there are $m$ total queries, the overall time complexity is $Theta((n+m) log n)$. The auxiliary space used by the queries does not accumulate, so the overall space complexity is $Theta(n + log n) = Theta(n)$.
 = Exercise 2
 We first compute the frequency array $A[0,n-1]$, where $A[p]$ is the number of segments containing position $p$.
 
